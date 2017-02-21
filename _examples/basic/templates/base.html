@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		{{block "head" . }}
+			{{template "partials/css.html" . }}
+		{{end}}
+		<title>{{.Title}}</title>
+	</head>
+	<body>
+		<header>
+			<h1 class="logo">Templates Example Site</h1>
+			{{ block "partials/nav.html" . }}{{end}}
+		</header>
+
+		{{block "body" . }}{{end}}
+
+		{{block "footer" . }}{{end}}
+
+		{{template "partials/scripts.html" . }}
+	</body>
+</html>
