@@ -49,7 +49,7 @@ func main() {
 
 func renderPage(view string, title string) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		b, err := tmpls.RenderTemplate("base.html", "views/"+view+".html", map[string]interface{}{
+		b, err := tmpls.Render("base.html", "views/"+view+".html", map[string]interface{}{
 			"Title":   title,
 			"Css":     css,
 			"Scripts": scripts,
