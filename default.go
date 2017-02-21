@@ -1,6 +1,9 @@
 package templates
 
-import "io"
+import (
+	"html/template"
+	"io"
+)
 
 // Default is used to contain the default templates instance
 var Default = New()
@@ -23,6 +26,10 @@ func AddPartial(name string, tmpl string) {
 
 func AddFunc(name string, f interface{}) {
 	Default.AddFunc(name, f)
+}
+
+func AddFuncs(funcMap template.FuncMap) {
+	Default.AddFuncs(funcMap)
 }
 
 func Delims(left, right string) {

@@ -84,6 +84,12 @@ func (t *Templates) AddFunc(name string, f interface{}) {
 	t.funcs[name] = f
 }
 
+func (t *Templates) AddFuncs(funcMap template.FuncMap) {
+	for k, v := range funcMap {
+		t.funcs[k] = v
+	}
+}
+
 func (t *Templates) UseExts(extensions []string) {
 	exts := make(map[string]bool)
 	for _, ext := range extensions {
