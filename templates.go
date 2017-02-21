@@ -11,7 +11,24 @@ import (
 	"strings"
 
 	"github.com/biz/bufpool"
+	"github.com/pkg/errors"
 )
+
+type templateNotFound interface {
+	TemplateNotFound() bool
+}
+
+type errTemplateNotFound struct {
+	template string
+}
+
+func (e errTemplateNotFound) Error() string {
+	return fmt.Sprintf("Template '%v' not found", e.template)
+}
+
+func (e errTemplateNotFound) TemplateNotFound() bool {
+	return true
+}
 
 type Templates struct {
 	Templates  map[string]*template.Template
@@ -79,7 +96,7 @@ func (t *Templates) ParseDir(dir string, stripPrefix string) (*Templates, error)
 	t.dir = dir
 	t.stripPrefix = stripPrefix
 	if err := filepath.Walk(dir, t.parseFile); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "templates: filepath.Walk error")
 	}
 
 	return t, nil
@@ -97,13 +114,13 @@ func (t *Templates) parseFile(path string, f os.FileInfo, err error) error {
 
 	file, err := os.Open(path)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "templates: error opening path: '%v'", path)
 	}
 	defer file.Close()
 
 	contents, err := ioutil.ReadAll(file)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "templates: error reading file contents, path: '%v'", path)
 	}
 
 	subPath := strings.Replace(path, t.stripPrefix, "", 1)
@@ -154,55 +171,44 @@ func (t *Templates) Parse() {
 }
 
 func (t *Templates) Execute(w io.Writer, baseView, view string, data interface{}) error {
+	setDefaultContentType(w)
 	tmpl, ok := t.Templates[view]
 	if !ok {
-		return fmt.Errorf("templates: '%s' not found", view)
+		return errTemplateNotFound{view}
 	}
 
 	if err := tmpl.ExecuteTemplate(w, baseView, data); err != nil {
-		return fmt.Errorf("templates: error executing template '%s', error: '%v'", baseView, err)
+		return errors.Wrapf(err, "templates: ExecuteTemplate error, baseView '%v' view '%v'", baseView, view)
 	}
 
 	return nil
 }
 
 func (t *Templates) MustExecute(w io.Writer, baseView, view string, data interface{}) {
-	setDefaultContentType(w)
-
 	if err := t.Execute(w, baseView, view, data); err != nil {
 		panic(err.Error())
 	}
 }
 
 func (t *Templates) ExecuteSingle(w io.Writer, view string, data interface{}) error {
+	setDefaultContentType(w)
+
 	tmpl, ok := t.Templates[view]
 	if !ok {
-		return fmt.Errorf("templates: '%s' not found", view)
+		return errTemplateNotFound{view}
 	}
 
 	if err := tmpl.Execute(w, data); err != nil {
-		return fmt.Errorf("templates: error executing template '%s', error: '%v'", view, err)
+		return errors.Wrapf(err, "templates: Execute error, view '%v'", view)
 	}
 
 	return nil
 }
 
 func (t *Templates) MustExecuteSingle(w io.Writer, view string, data interface{}) {
-	setDefaultContentType(w)
-	buf := t.pool.Get()
-	tmpl, ok := t.Templates[view]
-	if !ok {
-		t.pool.Put(buf)
-		panic(fmt.Sprintf("templates: '%s' not found", view))
+	if err := t.ExecuteSingle(w, view, data); err != nil {
+		panic(err)
 	}
-
-	if err := tmpl.Execute(buf, data); err != nil {
-		t.pool.Put(buf)
-		panic(fmt.Sprintf("templates: error executing template '%s', error: '%v'", view, err))
-	}
-
-	w.Write(buf.Bytes())
-	t.pool.Put(buf)
 }
 
 func (t *Templates) Render(baseView, view string, data interface{}) ([]byte, error) {
@@ -213,11 +219,11 @@ func (t *Templates) Render(baseView, view string, data interface{}) ([]byte, err
 
 	tmpl, ok := t.Templates[view]
 	if !ok {
-		return nil, fmt.Errorf("templates: '%s' not found", view)
+		return nil, errTemplateNotFound{view}
 	}
 
 	if err := tmpl.ExecuteTemplate(buf, baseView, data); err != nil {
-		return nil, fmt.Errorf("templates: error executing template '%s', error: '%v'", baseView, err)
+		return nil, errors.Wrapf(err, "templates: ExecuteTemplate error, baseView '%v' view '%v'", baseView, view)
 	}
 
 	return buf.Bytes(), nil
