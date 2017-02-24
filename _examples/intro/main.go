@@ -1,28 +1,13 @@
-# Templates
+package main
 
-The templates package provides a way to manage a collection of `html.Template`'s.
+import (
+	"fmt"
+	"os"
 
+	"github.com/biz/templates"
+)
 
-## Motivation
-
-Go's `html/template` package is very powerful, it just needs a way to 
-manage multiple templates, which the `templates` package was created to provide.
-
-Prior to the introduction of the 'block' feature you could get away with chaining a bunch
-of templates together and just use `Lookup` to retrieve a template and then call `ExecuteTemplate`
-on said template. But if you are like me and you want to use `block` (lets you set up default values
-and does not error out if you don't define a `block`) 
-You quickly find out that you cannot define a block in multiple templates. (Reference playground).
-
-## Basic Usage
-
-The templates package separates the templates into two types, views and partials.
-
-A partial is a template that will be made available to all defined views and other defined partials.
-
-A view is a template that can use and execute against any defined partial. A view accesses partial, a partial does not
-access a view
-
+func main() {
 	// Create a partial named base that will be used to wrap the contents of a view
 	templates.AddPartial("base", `
 		<!DOCTYPE HTML>
@@ -74,3 +59,4 @@ access a view
 
 	fmt.Println("\nRender the about template with the base partial")
 	templates.MustExecute(os.Stdout, "base", "about", nil)
+}
