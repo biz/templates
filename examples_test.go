@@ -6,6 +6,9 @@ import (
 	"github.com/biz/templates"
 )
 
+// Basic usage using the templates Default templates.
+//
+// Below one partial named 'base' will be used to wrap two views, 'home' and 'about'
 func Example() {
 	// Create a partial named base that will be used to wrap the contents of a view
 	templates.AddPartial("base", `
@@ -52,7 +55,10 @@ func Example() {
 	// NOTE: views and partiels should be created and parsed at startup.
 	templates.Parse()
 
+	// Render the home template wrapped by the base partial
 	templates.MustExecute(os.Stdout, "base", "home", nil)
+
+	// Render the about template wrapped by the base partial
 	templates.MustExecute(os.Stdout, "base", "about", nil)
 	// Output:
 	// <!DOCTYPE HTML>
