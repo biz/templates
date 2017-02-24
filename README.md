@@ -12,7 +12,7 @@ Prior to the introduction of the 'block' feature you could get away with chainin
 of templates together and just use `Lookup` to retrieve a template and then call `ExecuteTemplate`
 on said template. But if you are like me and you want to use `block` (lets you set up default values
 and does not error out if you don't define a `block`) 
-You quickly find out that you cannot define a block in multiple templates. (Reference playground).
+You quickly find out that you cannot define a block in multiple templates. [Playground Example](https://play.golang.org/p/6GBUT0-FyW)
 
 ## Basic Usage
 
