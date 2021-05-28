@@ -1,0 +1,4 @@
+github.com/biz/bufpool v0.0.0-20170221053142-37fed974357f h1:MAHGNPs067v3d4piplnP0N0uINqY2nBo3/OVPIiGILc=
+github.com/biz/bufpool v0.0.0-20170221053142-37fed974357f/go.mod h1:fUULFbu2ZTfoi3EbGqNB1EAuUySUHFyRKdqWLeIb9Rk=
+github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
+github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=

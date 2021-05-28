@@ -1,9 +1,11 @@
 package templates
 
 import (
+	"embed"
 	"fmt"
 	"html/template"
 	"io"
+	"io/fs"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -106,6 +108,25 @@ func (t *Templates) ParseDir(dir string, stripPrefix string) (*Templates, error)
 	}
 
 	return t, nil
+}
+
+func (t *Templates) ParseEmbed(files embed.FS, stripPrefix string) (*Templates, error) {
+	//t.stripPrefix = stripPrefix
+
+	if err := fs.WalkDir(files, ".", t.parseFileEmbed); err != nil {
+		return nil, errors.Wrap(err, "templates: fs.Walk error")
+	}
+
+	return t, nil
+}
+
+func (t *Templates) parseFileEmbed(path string, f fs.DirEntry, err error) error {
+	if err != nil {
+		return err
+	}
+	info, err := f.Info()
+
+	return t.parseFile(path, info, err)
 }
 
 func (t *Templates) parseFile(path string, f os.FileInfo, err error) error {
