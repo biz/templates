@@ -1,6 +1,7 @@
 package templates
 
 import (
+	"embed"
 	"html/template"
 	"io"
 )
@@ -14,6 +15,10 @@ func Parse() {
 
 func ParseDir(dir string, stripPrefix string) (*Templates, error) {
 	return Default.ParseDir(dir, stripPrefix)
+}
+
+func ParseEmbed(files embed.FS, stripPrefix string) (*Templates, error) {
+	return Default.ParseEmbed(files, stripPrefix)
 }
 
 func AddView(name string, tmpl string) {
