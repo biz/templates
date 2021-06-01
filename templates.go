@@ -111,7 +111,7 @@ func (t *Templates) ParseDir(dir string, stripPrefix string) (*Templates, error)
 }
 
 func (t *Templates) ParseEmbed(files embed.FS, stripPrefix string) (*Templates, error) {
-	//t.stripPrefix = stripPrefix
+	t.stripPrefix = stripPrefix
 
 	if err := fs.WalkDir(files, ".", func(path string, fe fs.DirEntry, err error) error {
 		if err != nil {
