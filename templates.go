@@ -113,8 +113,35 @@ func (t *Templates) ParseDir(dir string, stripPrefix string) (*Templates, error)
 func (t *Templates) ParseEmbed(files embed.FS, stripPrefix string) (*Templates, error) {
 	//t.stripPrefix = stripPrefix
 
-	if err := fs.WalkDir(files, ".", t.parseFileEmbed); err != nil {
-		return nil, errors.Wrap(err, "templates: fs.Walk error")
+	if err := fs.WalkDir(files, ".", func(path string, fe fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		f, err := fe.Info()
+		if err != nil {
+			return err
+		}
+
+		ext := filepath.Ext(f.Name())
+		if f.IsDir() || !t.check(ext) {
+			return nil
+		}
+
+		contents, err := files.ReadFile(path)
+		if err != nil {
+			return errors.Wrapf(err, "templates: error reading file: '%v', %w", path, err)
+		}
+
+		subPath := strings.Replace(path, t.stripPrefix, "", 1)
+		if strings.Contains(path, "/view/") || strings.Contains(path, "/views/") {
+			t.AddView(subPath, string(contents))
+		} else {
+			t.AddPartial(subPath, string(contents))
+		}
+
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
 	return t, nil
