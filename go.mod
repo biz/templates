@@ -1,6 +1,6 @@
 module github.com/biz/templates
 
-go 1.16
+go 1.20
 
 require (
 	github.com/biz/bufpool v0.0.0-20170221053142-37fed974357f

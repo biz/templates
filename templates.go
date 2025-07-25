@@ -6,7 +6,7 @@ import (
 	"html/template"
 	"io"
 	"io/fs"
-	"io/ioutil"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -82,7 +82,7 @@ func (t *Templates) AddPartial(name string, tmpl string) {
 	})
 }
 
-func (t *Templates) AddFunc(name string, f interface{}) {
+func (t *Templates) AddFunc(name string, f any) {
 	t.funcs[name] = f
 }
 
@@ -129,7 +129,7 @@ func (t *Templates) ParseEmbed(files embed.FS, stripPrefix string) (*Templates, 
 
 		contents, err := files.ReadFile(path)
 		if err != nil {
-			return errors.Wrapf(err, "templates: error reading file: '%v', %w", path, err)
+			return errors.Wrapf(err, "templates: error reading file: '%v'", path)
 		}
 
 		subPath := strings.Replace(path, t.stripPrefix, "", 1)
@@ -145,15 +145,6 @@ func (t *Templates) ParseEmbed(files embed.FS, stripPrefix string) (*Templates, 
 	}
 
 	return t, nil
-}
-
-func (t *Templates) parseFileEmbed(path string, f fs.DirEntry, err error) error {
-	if err != nil {
-		return err
-	}
-	info, err := f.Info()
-
-	return t.parseFile(path, info, err)
 }
 
 func (t *Templates) parseFile(path string, f os.FileInfo, err error) error {
@@ -172,7 +163,7 @@ func (t *Templates) parseFile(path string, f os.FileInfo, err error) error {
 	}
 	defer file.Close()
 
-	contents, err := ioutil.ReadAll(file)
+	contents, err := io.ReadAll(file)
 	if err != nil {
 		return errors.Wrapf(err, "templates: error reading file contents, path: '%v'", path)
 	}
@@ -212,19 +203,29 @@ func (t *Templates) Parse() {
 	// create a template that contains every partial
 	tmpl := template.New("").Funcs(t.funcs).Delims(t.delimsLeft, t.delimsRight)
 	for _, partial := range t.partials {
-		tmpl = template.Must(tmpl.New(partial.key).Parse(partial.value))
+		var err error
+		tmpl, err = tmpl.New(partial.key).Parse(partial.value)
+		if err != nil {
+			slog.Error("templates: error parsing partial", "partial", partial.key, "value", partial.value, "error", err, "template", tmpl.Name())
+			panic(err)
+		}
 	}
 
 	// clone the main template to create the view template.
 	// This enables the usage of Go's template "block" template feature
 	for _, view := range t.templates {
 		viewTmpl, _ := tmpl.Clone()
-		viewTmpl = template.Must(viewTmpl.Parse(view.value))
+		var err error
+		viewTmpl, err = viewTmpl.Parse(view.value)
+		if err != nil {
+			slog.Error("templates: error parsing view", "view", view.key, "value", view.value, "error", err, "template", tmpl.Name())
+			panic(err)
+		}
 		t.Templates[view.key] = viewTmpl
 	}
 }
 
-func (t *Templates) Execute(w io.Writer, baseView, view string, data interface{}) error {
+func (t *Templates) Execute(w io.Writer, baseView, view string, data any) error {
 	setDefaultContentType(w)
 	tmpl, ok := t.Templates[view]
 	if !ok {
@@ -238,13 +239,13 @@ func (t *Templates) Execute(w io.Writer, baseView, view string, data interface{}
 	return nil
 }
 
-func (t *Templates) MustExecute(w io.Writer, baseView, view string, data interface{}) {
+func (t *Templates) MustExecute(w io.Writer, baseView, view string, data any) {
 	if err := t.Execute(w, baseView, view, data); err != nil {
 		panic(err.Error())
 	}
 }
 
-func (t *Templates) ExecuteSingle(w io.Writer, view string, data interface{}) error {
+func (t *Templates) ExecuteSingle(w io.Writer, view string, data any) error {
 	setDefaultContentType(w)
 
 	tmpl, ok := t.Templates[view]
@@ -259,13 +260,13 @@ func (t *Templates) ExecuteSingle(w io.Writer, view string, data interface{}) er
 	return nil
 }
 
-func (t *Templates) MustExecuteSingle(w io.Writer, view string, data interface{}) {
+func (t *Templates) MustExecuteSingle(w io.Writer, view string, data any) {
 	if err := t.ExecuteSingle(w, view, data); err != nil {
 		panic(err)
 	}
 }
 
-func (t *Templates) Render(baseView, view string, data interface{}) ([]byte, error) {
+func (t *Templates) Render(baseView, view string, data any) ([]byte, error) {
 	buf := t.pool.Get()
 	defer func() {
 		t.pool.Put(buf)
@@ -283,7 +284,7 @@ func (t *Templates) Render(baseView, view string, data interface{}) ([]byte, err
 	return buf.Bytes(), nil
 }
 
-func (t *Templates) MustRender(baseView, view string, data interface{}) []byte {
+func (t *Templates) MustRender(baseView, view string, data any) []byte {
 	b, err := t.Render(baseView, view, data)
 	if err != nil {
 		panic(err)
@@ -291,7 +292,7 @@ func (t *Templates) MustRender(baseView, view string, data interface{}) []byte {
 	return b
 }
 
-func (t *Templates) RenderSingle(view string, data interface{}) ([]byte, error) {
+func (t *Templates) RenderSingle(view string, data any) ([]byte, error) {
 	buf := t.pool.Get()
 	defer func() {
 		t.pool.Put(buf)
@@ -304,7 +305,7 @@ func (t *Templates) RenderSingle(view string, data interface{}) ([]byte, error) 
 	return buf.Bytes(), nil
 }
 
-func (t *Templates) MustRenderSingle(view string, data interface{}) []byte {
+func (t *Templates) MustRenderSingle(view string, data any) []byte {
 	b, err := t.RenderSingle(view, data)
 	if err != nil {
 		panic(err)
